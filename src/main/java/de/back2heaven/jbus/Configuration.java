@@ -46,25 +46,23 @@ public class Configuration implements Map<String, Object> {
     
     @Override
     public Object put(String key, Object value) {
-        // TODO EVENT ?
         return map.put(key, value);
     }
     
     @Override
     public Object remove(Object key) {
-        // EVENT ?
         return map.remove(key);
     }
     
     @Override
     public void putAll(Map<? extends String, ? extends Object> m) {
-        // EVENT ?
-        map.putAll(m);
+       for (Entry<? extends String, ? extends Object> e:m.entrySet()){
+           put(e.getKey(),e.getValue()); 
+       }
     }
     
     @Override
     public void clear() {
-        // EVENT ?
         map.clear();
     }
     
