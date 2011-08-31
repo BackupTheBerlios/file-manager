@@ -208,7 +208,7 @@ public final class JBus implements Observer, Observable {
         }
     }
 
-    public void unload(Class aThis) {
+    public void unload(Class<?> aThis) {
         unload(aThis.getName());
     }
 

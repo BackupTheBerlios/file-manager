@@ -8,23 +8,25 @@ import de.back2heaven.jbus.events.GUINotify;
 import javax.swing.JPanel;
 
 /**
- *
+ * 
  * @author Jens Kapitza
  */
 public class AddTab implements GUINotify {
 
-    private JPanel tab;
-    private String name;
-    public AddTab(String name,JPanel tab) {
-        this.tab = tab;
-        this.name = name;
-    }
+	private static final long serialVersionUID = 5693436756575600158L;
+	private JPanel tab;
+	private String name;
 
-    public String getName() {
-        return name;
-    }
+	public AddTab(String name, JPanel tab) {
+		this.tab = tab;
+		this.name = name;
+	}
 
-    public JPanel getTab() {
-        return tab;
-    }
+	public String getName() {
+		return name;
+	}
+
+	public JPanel getTab() {
+		return tab;
+	}
 }

@@ -12,7 +12,8 @@ import de.back2heaven.jbus.events.GUINotify;
  */
 public class RemoveTab implements GUINotify{
     
-    private String name;
+	private static final long serialVersionUID = -144006885898765038L;
+	private String name;
 
     public RemoveTab(String name) {
         this.name = name;

@@ -1,12 +1,16 @@
 package de.back2heaven.jbus.events.notify;
 
+import de.back2heaven.jbus.NoRemoveIterator;
 import de.back2heaven.jbus.events.Event;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map.Entry;
 
 import de.back2heaven.jbus.events.Notify;
 
-public class SetConfiguration implements Notify,Event {
+public class SetConfiguration implements Notify, Event,
+		Iterable<Entry<String, Object>> {
 
 	private static final long serialVersionUID = 4996420653734515264L;
 	private HashMap<String, Object> map = new HashMap<>();
@@ -23,15 +27,20 @@ public class SetConfiguration implements Notify,Event {
 
 	public final void add(String key, Object value) {
 		map.put(key, value);
-                keys.add(key);
+		keys.add(key);
 	}
 
 	public String[] getKeys() {
 		return keys.toArray(new String[0]);
 	}
-        
+
 	public Object get(String key) {
 		return map.get(key);
+	}
+
+	@Override
+	public Iterator<Entry<String, Object>> iterator() {
+		return new NoRemoveIterator<>( map.entrySet().iterator() );
 	}
 
 }

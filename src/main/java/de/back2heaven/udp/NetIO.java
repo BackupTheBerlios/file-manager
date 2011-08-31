@@ -43,8 +43,7 @@ public class NetIO implements JavaBusService, CallbackListener {
     @Override
     public void callback(Callback question, Event answer) {
         // cfg for xy
-        System.out.println("???????");
-        if (question == get && answer instanceof SetConfiguration) {
+        if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
 
             for (String k : set.getKeys()) {

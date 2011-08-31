@@ -23,6 +23,11 @@ public class Start {
         
         bus.load("de.back2heaven.udp.NetIO");
         
+        
+        for (String clazz : args){
+        	bus.load(clazz);
+        }
+        
 
     }
 }
