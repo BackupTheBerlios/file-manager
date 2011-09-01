@@ -22,6 +22,7 @@ public class Start {
         bus.load("de.back2heaven.service.FileWatchService");
         
         bus.load("de.back2heaven.udp.NetIO");
+        bus.load("de.back2heaven.udp.StunClient");
         
         bus.load("de.back2heaven.udp.StunService");
         
