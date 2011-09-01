@@ -1,22 +1,17 @@
 package de.back2heaven.udp;
 
-import de.back2heaven.jbus.JBus;
-import de.back2heaven.jbus.JavaBusService;
+import de.back2heaven.jbus.JavaService;
 import de.back2heaven.jbus.events.Callback;
 import de.back2heaven.jbus.events.CallbackListener;
 import de.back2heaven.jbus.events.Event;
 import de.back2heaven.jbus.events.callback.GetConfiguration;
 import de.back2heaven.jbus.events.notify.SetConfiguration;
+import de.back2heaven.pattern.AbstractObservable;
 
-public class NetIO implements JavaBusService, CallbackListener {
+public class NetIO extends AbstractObservable implements JavaService, CallbackListener {
 
-    private JBus bus;
     private GetConfiguration get = new GetConfiguration(this, "netio.database.file", "netio.database.types");
 
-    @Override
-    public void setBus(JBus bus) {
-        this.bus = bus;
-    }
 
     // Tabelle
     // IP | PORT | Kennung (wenn bekannt)
@@ -37,7 +32,7 @@ public class NetIO implements JavaBusService, CallbackListener {
     }
 
     private void setupTable() {
-        bus.notifyObservers(get);
+        notifyObservers(get);
     }
 
     @Override

@@ -1,91 +1,129 @@
 package de.back2heaven.udp;
 
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class StunMessage implements NetIOMessage {
 
-	private byte[] data;
+    private byte[] data;
 
-	public StunMessage(byte[] data) {
-		this.data = data;
-	}
+    public StunMessage(DatagramPacket packet) {
+        this(packet.getData());
+    }
 
-	public StunMessage(InetAddress address, int port) {
-		this(address, port, null);
-	}
+    public StunMessage(byte[] data) {
+        this.data = data;
+    }
 
-	public StunMessage(InetAddress address, int port, StunMessage next) {
-		int size = 1 + 4 + 4;
-		if (next != null) {
-			size += next.getSize();
-		}
-		boolean isIPv6 = address instanceof Inet6Address;
+    public StunMessage(DatagramSocket socket) {
+        this(socket.getLocalAddress(), socket.getLocalPort());
+    }
 
-		if (isIPv6) {
-			// 16 statt 4
-			size += 12; // sonst keine änderungen
-		}
+    public StunMessage(DatagramPacket packet, StunMessage next) {
+        this(packet.getAddress(), packet.getPort(), next);
+    }
 
-		data = new byte[size];
+    public StunMessage(InetAddress address, int port) {
+        this(address, port, null);
+    }
 
-		data[0] = isIPv6 ? (byte) 1 : 0;
-		// ipaddresse ist entweder v4 oder v6
-		byte[] add = address.getAddress();
-		// addresse nun gespeichert.
-		System.arraycopy(add, 0, data, 1, add.length);
+    public StunMessage(InetAddress address, int port, StunMessage next) {
+        int size = 1 + 4 + 4;
+        if (next != null) {
+            size += next.getSize();
+        }
+        boolean isIPv6 = address instanceof Inet6Address;
 
-		// port schreiben
-		byte[] intport = ByteBuffer.allocate(4).putInt(port).array();
+        if (isIPv6) {
+            // 16 statt 4
+            size += 12; // sonst keine änderungen
+        }
 
-		System.arraycopy(intport, 0, data, 1 + add.length, intport.length);
+        data = new byte[size];
 
-		// nestet data
-		if (next != null) {
-			byte[] nextB = next.getBytes();
-			System.arraycopy(nextB, 0, data, 1 + add.length + intport.length,
-					nextB.length);
-		}
+        data[0] = isIPv6 ? (byte) 1 : 0;
+        // ipaddresse ist entweder v4 oder v6
+        byte[] add = address.getAddress();
+        // addresse nun gespeichert.
+        System.arraycopy(add, 0, data, 1, add.length);
 
-	}
+        // port schreiben
+        byte[] intport = ByteBuffer.allocate(4).putInt(port).array();
 
-	public boolean isIPv6() {
-		return data[0] > 0;
-	}
+        System.arraycopy(intport, 0, data, 1 + add.length, intport.length);
 
-	public InetAddress getAddress() throws UnknownHostException {
-		byte[] addr = new byte[isIPv6() ? 16 : 4];
-		System.arraycopy(data, 1, addr, 0, addr.length);
-		return InetAddress.getByAddress(addr);
-	}
+        // nestet data
+        if (next != null) {
+            byte[] nextB = next.getBytes();
+            System.arraycopy(nextB, 0, data, 1 + add.length + intport.length,
+                    nextB.length);
+        }
 
-	public int getPort() {
-		byte[] port = new byte[4];
-		System.arraycopy(data, isIPv6() ? 17 : 5, port, 0, port.length);
-		return ByteBuffer.wrap(port).getInt();
-	}
+    }
 
-	public int getSize() {
-		return data.length;
-	}
+    public boolean isIPv6() {
+        return data[0] > 0;
+    }
 
-	public StunMessage getNext() {
-		int pSize = 1 + (isIPv6() ? 16 : 4) + 4; // größer als dies dann next
-		int z = data.length - pSize;
-		if (z > 0) {
-			byte[] v = new byte[z];
-			System.arraycopy(data, pSize, v, 0, v.length);
-			return new StunMessage(v);
-		}
+    public InetAddress getAddress() {
+        byte[] addr = new byte[isIPv6() ? 16 : 4];
+        System.arraycopy(data, 1, addr, 0, addr.length);
+        try {
+            return InetAddress.getByAddress(addr);
+        } catch (UnknownHostException ex) {
+            return null;
+        }
+    }
 
-		return null;
+    public int getPort() {
+        byte[] port = new byte[4];
+        System.arraycopy(data, isIPv6() ? 17 : 5, port, 0, port.length);
+        return ByteBuffer.wrap(port).getInt();
+    }
 
-	}
+    public int getSize() {
+        return data.length;
+    }
 
-	@Override
-	public byte[] getBytes() {
-		return data;
-	}
+    public StunMessage getNext() {
+        int pSize = 1 + (isIPv6() ? 16 : 4) + 4; // größer als dies dann next
+        int z = data.length - pSize;
+        if (z > 0) {
+            byte[] v = new byte[z];
+            System.arraycopy(data, pSize, v, 0, v.length);
+            return new StunMessage(v);
+        }
+
+        return null;
+
+    }
+
+    @Override
+    public String toString() {
+        InetAddress address = getAddress();
+        return String.format("%s --> %s   Port(%d)", address.getCanonicalHostName(), address.getHostAddress(), getPort());
+    }
+
+    public DatagramPacket getDatagramPacket(DatagramPacket replay) {
+        return getDatagramPacket(replay.getAddress(), replay.getPort());
+    }
+
+    public DatagramPacket getDatagramPacket(InetAddress address, int port) {
+        return new DatagramPacket(getBytes(), getSize(), address, port);
+    }
+
+    public DatagramPacket getDatagramPacket() {
+        return getDatagramPacket(getAddress(), getPort());
+    }
+
+    @Override
+    public byte[] getBytes() {
+        return data;
+    }
 }

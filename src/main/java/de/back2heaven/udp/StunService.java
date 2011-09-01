@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,6 +20,7 @@ public class StunService implements JavaBusService, CallbackListener {
     private final GetConfiguration get = new GetConfiguration(this, "stun.port");
     private DatagramSocket udp;
     private JBus bus;
+    private int port;
 
     @Override
     public void run() {
@@ -31,16 +33,20 @@ public class StunService implements JavaBusService, CallbackListener {
             DatagramPacket packet = new DatagramPacket(bytes, bytes.length);
             try {
                 System.out.println("ONLINE");
-                udp.receive(packet);
+                try {
+                    udp.receive(packet);
+                } catch (SocketTimeoutException ste) {
+                    continue;
+                }
                 // nachricht bekommen
-                StunMessage stunMessage = new StunMessage(packet.getData());
-                System.out.println("FOUND: " + stunMessage.getAddress()  +" :: " + stunMessage.getPort());
-                StunMessage extMessage = new StunMessage(packet.getAddress(), packet.getPort(), stunMessage);
-                DatagramPacket message = new DatagramPacket(extMessage.getBytes(), extMessage.getSize(), packet.getAddress(), packet.getPort());
+                StunMessage stunMessage = new StunMessage(packet);
+                System.out.println("FOUND: " + stunMessage);
+                StunMessage extMessage = new StunMessage(packet, stunMessage);
+                DatagramPacket message = extMessage.getDatagramPacket(packet);
                 udp.send(message);
                 System.out.println("Send MEssage... ");
             } catch (IOException ex) {
-               // Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
+                // Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
             }
 
         }
@@ -57,12 +63,12 @@ public class StunService implements JavaBusService, CallbackListener {
     public void callback(Callback question, Event answer) {
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-            int port = Integer.parseInt((String) set.get("stun.port"));
+            port = set.getInt("stun.port");
             try {
                 if (udp == null) {
                     udp = new DatagramSocket(port);
+                    udp.setSoTimeout(10000);
                 }
-                udp.setSoTimeout(10000);
             } catch (SocketException ex) {
                 Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
             }

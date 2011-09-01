@@ -26,138 +26,137 @@ import de.back2heaven.jbus.events.callback.GetConfiguration;
 import de.back2heaven.jbus.events.notify.SetConfiguration;
 import de.back2heaven.pattern.Observable;
 import de.back2heaven.pattern.Observer;
+import java.util.Map.Entry;
 
 /**
- * 
+ *
  * @author Jens Kapitza
  */
 public class AutoReloadConfiguration extends Configuration implements
-		JavaService, Observer {
+        JavaService, Observer {
 
-	private Path path;
-	private WatchService watcher;
-	private Map<String, Collection<CallbackListener>> listener = new ConcurrentHashMap<>();
+    private Path path;
+    private WatchService watcher;
+    private Map<String, Collection<CallbackListener>> listener = new ConcurrentHashMap<>();
 
-	public AutoReloadConfiguration() {
-		this("data/jbus.properties");
-	}
+    public AutoReloadConfiguration() {
+        this("data/jbus.properties");
+    }
 
-	public AutoReloadConfiguration(String file) {
-		path = Paths.get(file);
-	}
+    public AutoReloadConfiguration(String file) {
+        path = Paths.get(file);
+    }
 
-	@Override
-	public void run() {
-		boolean reload = false;
-		boolean save = false;
-		try {
-			read(path); // initial read
-			watcher = FileSystems.getDefault().newWatchService();
-			path.getParent().register(watcher,
-					StandardWatchEventKinds.ENTRY_MODIFY,
-					StandardWatchEventKinds.ENTRY_DELETE);
-			while (true) {
-				WatchKey key = watcher.take();
-				for (WatchEvent<?> event : key.pollEvents()) {
-					Path a = path.getFileName();
-					Path b = (Path) event.context();
+    @Override
+    public void run() {
+        boolean reload = false;
+        boolean save = false;
+        try {
+            read(path); // initial read
+            watcher = FileSystems.getDefault().newWatchService();
+            path.getParent().register(watcher,
+                    StandardWatchEventKinds.ENTRY_MODIFY,
+                    StandardWatchEventKinds.ENTRY_DELETE);
+            while (true) {
+                WatchKey key = watcher.take();
+                for (WatchEvent<?> event : key.pollEvents()) {
+                    Path a = path.getFileName();
+                    Path b = (Path) event.context();
 
-					if (a.equals(b)) {
-						if (StandardWatchEventKinds.ENTRY_MODIFY.equals(event
-								.kind())) {
-							// reload kontext if path is the same
-							reload = true;
-						}
-						if (StandardWatchEventKinds.ENTRY_DELETE.equals(event
-								.kind())) {
-							// bei delete neu schreiben
-							save = true;
-						}
-					}
-				}
-				key.reset();
-				if (reload) {
-					try {
-						read(path);
-					} catch (NoSuchFileException e) {
-						// ignore
-					}
-					reload = false;
-				}
-				if (save) {
-					save(path);
-					save = false;
-				}
-			}
-		} catch (IOException | InterruptedException
-				| ClosedWatchServiceException e) {
-			// ignore just schutdown the service
-		}
+                    if (a.equals(b)) {
+                        if (StandardWatchEventKinds.ENTRY_MODIFY.equals(event.kind())) {
+                            // reload kontext if path is the same
+                            reload = true;
+                        }
+                        if (StandardWatchEventKinds.ENTRY_DELETE.equals(event.kind())) {
+                            // bei delete neu schreiben
+                            save = true;
+                        }
+                    }
+                }
+                key.reset();
+                if (reload) {
+                    try {
+                        read(path);
+                    } catch (NoSuchFileException e) {
+                        // ignore
+                    }
+                    reload = false;
+                }
+                if (save) {
+                    save(path);
+                    save = false;
+                }
+            }
+        } catch (IOException | InterruptedException | ClosedWatchServiceException e) {
+            // ignore just schutdown the service
+        }
 
-		watcher = null;
+        watcher = null;
 
-	}
+    }
 
-	@Override
-	public Object put(String key, Object value) {
+    @Override
+    public Object put(String key, Object value) {
 
-		Object v = super.put(key, value);
-		if (v == null || !v.equals(value)) {
-			// listener benachrichtigen
+        Object v = super.put(key, value);
+        if (v == null || !v.equals(value)) {
+            // listener benachrichtigen
 
-			Collection<CallbackListener> set = listener.get(key);
-			if (set != null) {
-				SetConfiguration setEvent = new SetConfiguration(key, value);
-				for (CallbackListener l : set) {
-					l.callback(null, setEvent);
-				}
-			}
-		}
-		return v;
-	}
+            Collection<CallbackListener> set = listener.get(key);
+            if (set != null) {
+                SetConfiguration setEvent = new SetConfiguration(key, value);
+                for (CallbackListener l : set) {
+                    l.callback(null, setEvent);
+                }
+            }
+        }
+        return v;
+    }
 
-	@Override
-	public void close() throws Exception {
-		watcher.close();
-	}
+    @Override
+    public void close() throws Exception {
+        watcher.close();
+    }
 
-	@Override
-	public boolean accept(Object obj) {
-		return obj instanceof Notify || obj instanceof Event;
-	}
+    @Override
+    public boolean accept(Object obj) {
+        return obj instanceof Notify || obj instanceof Event;
+    }
 
-	@Override
-	public void update(Observable from, Object args) {
-		if (args instanceof GetConfiguration) {
-			GetConfiguration get = (GetConfiguration) args;
+    @Override
+    public void update(Observable from, Object args) {
+        if (args instanceof GetConfiguration) {
+            GetConfiguration get = (GetConfiguration) args;
 
-			CallbackListener l = get.getListener();
-			SetConfiguration setEvent = new SetConfiguration();
-			for (String k : get.getKeys()) {
-				if (!listener.containsKey(k)) {
-					listener.put(k, new CopyOnWriteArraySet<CallbackListener>());
-				}
-				Collection<CallbackListener> set = listener.get(k);
+            CallbackListener l = get.getListener();
+            SetConfiguration setEvent = new SetConfiguration();
+            for (String k : get.getKeys()) {
+                if (!listener.containsKey(k)) {
+                    listener.put(k, new CopyOnWriteArraySet<CallbackListener>());
+                }
+                Collection<CallbackListener> set = listener.get(k);
 
-				if (!set.contains(l)) {
-					set.add(l);
-				}
+                if (!set.contains(l)) {
+                    set.add(l);
+                }
 
-				setEvent.add(k, get(k));
+                setEvent.add(k, get(k));
 
-			}
-			l.callback(get, setEvent);
-		}
-		
-		// stop changing worng keys
-		if (args instanceof SetConfiguration){
-			SetConfiguration set = (SetConfiguration)args;
-			for (Entry<String, Object> e : set){
-				String key = e.getKey();
-				if (key.contains(from.getClass().getName())) {
-					put(key,e.getValue());
-				}
-			}
-		}
-	}
+            }
+            l.callback(get, setEvent);
+        }
+        
+        // stop changing worng keys
+        if (args instanceof SetConfiguration) {
+            final String vgl = from.getClass().getName().toLowerCase();
+            SetConfiguration set = (SetConfiguration) args;
+            for (Entry<String, Object> e : set) {
+                String key = e.getKey().toLowerCase();
+                if (key.contains(vgl)) {
+                    put(key, e.getValue());
+                }
+            }
+        }
+    }
 }

@@ -1,6 +1,6 @@
 /*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
+ * To change this template, choose Tools | Templates and open the template in
+ * the editor.
  */
 package de.back2heaven.udp;
 
@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketTimeoutException;
 
 /**
  *
@@ -32,20 +33,31 @@ public class StunClient extends AbstractObservable implements JavaService, Callb
     public void run() {
         notifyObservers(getCon);
         System.out.println("basdasdfasdf");
-        final StunMessage message = new StunMessage(dataSocket.getLocalAddress(), dataSocket.getLocalPort());
+        final StunMessage message = new StunMessage(dataSocket);
         while (!dataSocket.isClosed()) {
+            final long startTime = System.currentTimeMillis();
             System.out.println("SENDE request " + gateway + " -- " + port);
-            
-            DatagramPacket data = new DatagramPacket(message.getBytes(), message.getSize(), gateway, port);
+
+            DatagramPacket data = message.getDatagramPacket(gateway, port);
             try {
                 dataSocket.send(data);
-                
-                byte[] antwort = new byte[message.getSize()*2];
+                byte[] antwort = new byte[message.getSize() * 2];
                 DatagramPacket antwortPacket = new DatagramPacket(antwort, antwort.length);
-                dataSocket.receive(antwortPacket);
-                StunMessage antwortEx = new StunMessage(antwortPacket.getData());
-                System.out.println(antwortEx.getAddress() + " :: "+ antwortEx.getPort());
-                Thread.sleep(waitIntervall);
+                try {
+                    dataSocket.receive(antwortPacket);
+                } catch (SocketTimeoutException ste) {
+                    continue; // TODO count and populate to user?
+                }
+                final long endTime = System.currentTimeMillis();
+
+                final long delay = endTime - startTime;
+                if (delay < waitIntervall) {
+                    Thread.sleep(waitIntervall);
+                    // TODO check intervall is min.
+                }
+                StunMessage antwortEx = new StunMessage(antwortPacket);
+                System.out.println(antwortEx.getAddress() + " :: " + antwortEx.getPort());
+                // TODO populate to system
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -62,17 +74,17 @@ public class StunClient extends AbstractObservable implements JavaService, Callb
     public void callback(Callback question, Event answer) {
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-            waitIntervall = Integer.parseInt((String) set.get("stun.intervall"));
-            port = Integer.parseInt((String) set.get("stun.port"));
+            waitIntervall = set.getInt("stun.intervall");
+            port = set.getInt("stun.port");
 
             if (waitIntervall < 1) {
                 throw new RuntimeException("unsupported Intervall");
             }
             try {
-                gateway = InetAddress.getByName((String) set.get("stun.gateway"));
+                gateway = set.getAddress("stun.gateway");
                 if (dataSocket == null) {
                     dataSocket = new DatagramSocket();
-                    dataSocket.setSoTimeout(Math.max(waitIntervall,10000));
+                    dataSocket.setSoTimeout(Math.max(waitIntervall, 10000));
                     dataSocket.setReuseAddress(true);
                 }
             } catch (IOException ex) {
