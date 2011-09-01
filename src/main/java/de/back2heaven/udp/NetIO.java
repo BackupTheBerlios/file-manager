@@ -45,7 +45,7 @@ public class NetIO implements JavaBusService, CallbackListener {
         // cfg for xy
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-
+            
             for (String k : set.getKeys()) {
                 System.out.println(k + ":\t" + set.get(k));
             }
