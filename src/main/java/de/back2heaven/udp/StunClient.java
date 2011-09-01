@@ -25,7 +25,7 @@ public class StunClient extends AbstractObservable implements JavaService, Callb
 
     private final GetConfiguration getCon = new GetConfiguration(this, "stun.port", "stun.intervall", "stun.gateway");
     private DatagramSocket dataSocket;
-    private int waitIntervall;
+    private long waitIntervall;
     private int port;
     private InetAddress gateway;
 
@@ -74,22 +74,30 @@ public class StunClient extends AbstractObservable implements JavaService, Callb
     public void callback(Callback question, Event answer) {
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-            waitIntervall = set.getInt("stun.intervall");
-            port = set.getInt("stun.port");
+            if (set.has("stun.intervall")) {
+                waitIntervall = set.getLong("stun.intervall");
+            }
+            if (set.has("stun.port")) {
+                port = set.getInt("stun.port");
+            }
+
+            if (set.has("stun.gateway")) {
+                gateway = set.getAddress("stun.gateway");
+            }
 
             if (waitIntervall < 1) {
                 throw new RuntimeException("unsupported Intervall");
             }
-            try {
-                gateway = set.getAddress("stun.gateway");
-                if (dataSocket == null) {
+            if (dataSocket == null) {
+                try {
                     dataSocket = new DatagramSocket();
-                    dataSocket.setSoTimeout(Math.max(waitIntervall, 10000));
+                    dataSocket.setSoTimeout(10000);
                     dataSocket.setReuseAddress(true);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
                 }
-            } catch (IOException ex) {
-                throw new RuntimeException(ex);
             }
+
         }
     }
 }

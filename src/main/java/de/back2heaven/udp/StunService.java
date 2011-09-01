@@ -17,10 +17,11 @@ import java.util.logging.Logger;
 
 public class StunService implements JavaBusService, CallbackListener {
 
-    private final GetConfiguration get = new GetConfiguration(this, "stun.port");
+    private final GetConfiguration get = new GetConfiguration(this, "stun.port", "stun.intervall");
     private DatagramSocket udp;
     private JBus bus;
     private int port;
+    private long waitIntervall;
 
     @Override
     public void run() {
@@ -45,6 +46,12 @@ public class StunService implements JavaBusService, CallbackListener {
                 DatagramPacket message = extMessage.getDatagramPacket(packet);
                 udp.send(message);
                 System.out.println("Send MEssage... ");
+                
+                // no delays here
+                
+                // were w8 for requests
+                
+                
             } catch (IOException ex) {
                 // Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -63,15 +70,23 @@ public class StunService implements JavaBusService, CallbackListener {
     public void callback(Callback question, Event answer) {
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-            port = set.getInt("stun.port");
-            try {
-                if (udp == null) {
+            if (set.has("stun.intervall")) {
+                waitIntervall = set.getLong("stun.intervall");
+            }
+            if (set.has("stun.port")) {
+                port = set.getInt("stun.port");
+            }
+
+            if (udp == null) {
+                try {
                     udp = new DatagramSocket(port);
                     udp.setSoTimeout(10000);
+                    udp.setReuseAddress(true);
+                } catch (SocketException ex) {
+                    Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            } catch (SocketException ex) {
-                Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
             }
+
         }
     }
 

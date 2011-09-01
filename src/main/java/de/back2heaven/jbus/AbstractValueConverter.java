@@ -6,16 +6,15 @@ package de.back2heaven.jbus;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author Jens Kapitza
  */
-public abstract class AbstractValueConverter   {
+public abstract class AbstractValueConverter {
+
     public abstract Object get(String key);
-    
+
     // -----------------------------------------------------------
     // get methods
     public int getInt(final String key) {
@@ -28,7 +27,18 @@ public abstract class AbstractValueConverter   {
         }
         return i.intValue();
     }
-    
+
+    public long getLong(final String key) {
+        Object obj = get(key);
+        Long i;
+        if (obj instanceof Long) {
+            i = (Long) obj;
+        } else {
+            return Long.parseLong(String.valueOf(obj));
+        }
+        return i.longValue();
+    }
+
     public double getDouble(final String key) {
         Object obj = get(key);
         Double i;
@@ -39,7 +49,7 @@ public abstract class AbstractValueConverter   {
         }
         return i.doubleValue();
     }
-    
+
     public String getString(final String key) {
         Object obj = get(key);
         if (obj instanceof String) {
@@ -47,7 +57,7 @@ public abstract class AbstractValueConverter   {
         }
         return String.valueOf(obj);
     }
-    
+
     public boolean isSet(final String key) {
         Object obj = get(key);
         if (obj instanceof Boolean) {
@@ -57,12 +67,11 @@ public abstract class AbstractValueConverter   {
         return Boolean.parseBoolean(String.valueOf(obj));
     }
 
-    public InetAddress getAddress(final String key){
+    public InetAddress getAddress(final String key) {
         try {
             return InetAddress.getByName(getString(key));
         } catch (UnknownHostException ex) {
             return null;
         }
     }
-    
 }

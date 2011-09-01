@@ -24,6 +24,10 @@ public class SetConfiguration extends AbstractValueConverter implements Notify, 
         this();
         add(key, value);
     }
+    
+    public boolean has(String key){
+        return keys.contains(key);
+    }
 
     public final void add(String key, Object value) {
         map.put(key, value);

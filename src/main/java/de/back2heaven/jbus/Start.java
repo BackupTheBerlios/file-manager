@@ -12,14 +12,14 @@ public class Start {
     	JBus bus = new JBus();
         bus.load("de.back2heaven.jbus.AutoReloadConfiguration");
 //        bus.load("de.back2heaven.service.TimeService");
-        bus.load("de.back2heaven.service.TimeReader");
+//        bus.load("de.back2heaven.service.TimeReader");
 
         // service Agent
         // startet und stop alles
         // ohne Swing wird sofor beendet
         bus.load("de.back2heaven.jbus.agent.SwingAgent");
         
-        bus.load("de.back2heaven.service.FileWatchService");
+//        bus.load("de.back2heaven.service.FileWatchService");
         
         bus.load("de.back2heaven.udp.NetIO");
         bus.load("de.back2heaven.udp.StunClient");
