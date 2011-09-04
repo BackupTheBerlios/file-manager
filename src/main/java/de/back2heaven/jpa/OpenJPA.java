@@ -24,11 +24,15 @@ public class OpenJPA {
     public static EntityManagerFactory getFactory(String db, Class<?>... typeClazz) {
 
         Map<String, String> map = new HashMap<String, String>();
-        map.put("openjpa.ConnectionURL", "jdbc:h2:" + db);
-        map.put("openjpa.ConnectionDriverName", "org.h2.Driver");
-        map.put("ConnectionUserName", "sa");
+        map.put("openjpa.ConnectionURL", "jdbc:derby:" + db + ";create=true");
+        map.put("openjpa.InverseManager", "true");
+
+        map.put("openjpa.ConnectionDriverName", "org.apache.derby.jdbc.EmbeddedDriver");
+        map.put("openjpa.ConnectionUserName", "user");
+        map.put("openjpa.ConnectionPassword", "user");
         map.put("openjpa.RuntimeUnenhancedClasses", "supported");
-        map.put("openjpa.jdbc.SynchronizeMappings", "buildSchema");
+        map.put("openjpa.Log", "DefaultLevel=WARN, Runtime=INFO, Tool=INFO, SQL=TRACE");
+        map.put("openjpa.jdbc.SynchronizeMappings", "buildSchema(SchemaAction='add,deleteTableContents',ForeignKeys=true)");
 
         // find all classes to registrate them
         List<Class<?>> types = new ArrayList<Class<?>>(Arrays.asList(typeClazz));
@@ -48,8 +52,4 @@ public class OpenJPA {
         return OpenJPAPersistence.getEntityManagerFactory(map);
 
     }
-    
-    
-    
-    
 }

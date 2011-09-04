@@ -17,11 +17,10 @@ import java.util.logging.Logger;
 
 public class StunService implements JavaBusService, CallbackListener {
 
-    private final GetConfiguration get = new GetConfiguration(this, "stun.port", "stun.intervall");
+    private final GetConfiguration get = new GetConfiguration(this, "stun.port");
     private DatagramSocket udp;
     private JBus bus;
     private int port;
-    private long waitIntervall;
 
     @Override
     public void run() {
@@ -46,12 +45,12 @@ public class StunService implements JavaBusService, CallbackListener {
                 DatagramPacket message = extMessage.getDatagramPacket(packet);
                 udp.send(message);
                 System.out.println("Send MEssage... ");
-                
+
                 // no delays here
-                
+
                 // were w8 for requests
-                
-                
+
+
             } catch (IOException ex) {
                 // Logger.getLogger(StunService.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -70,9 +69,7 @@ public class StunService implements JavaBusService, CallbackListener {
     public void callback(Callback question, Event answer) {
         if (answer instanceof SetConfiguration) {
             SetConfiguration set = (SetConfiguration) answer;
-            if (set.has("stun.intervall")) {
-                waitIntervall = set.getLong("stun.intervall");
-            }
+
             if (set.has("stun.port")) {
                 port = set.getInt("stun.port");
             }
